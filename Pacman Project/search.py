@@ -76,6 +76,15 @@ class SearchProblem:
         The sequence must be composed of legal moves.
         """
         util.raiseNotDefined()
+    
+    def breadthFirstSearch(self,state):
+        return BreadthFirstSearch(self,state)
+    
+    def depthFirstSearch(self,state):
+        return DepthFirstSearch(self,state)
+    
+    def aStarSearch(self,state):
+        return AStarSearch(self,state)
 
 
 def tinyMazeSearch(problem):
@@ -105,7 +114,7 @@ def genericSearch(problem, g, h):
     
 # Jacob Holloway Assignment 2 part 2
 
-def depthFirstSearch(problem):
+def DepthFirstSearch(problem):
     # Import necessary classes
     from util import Stack
 
@@ -151,7 +160,7 @@ def depthFirstSearch(problem):
 
 # Jacob Holloway Assignemnt 2 part 2
 
-def breadthFirstSearch(problem):
+def BreadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     # Import necessary classes
     from util import Queue
@@ -210,7 +219,7 @@ def nullHeuristic(state, problem=None):
 
 # Jacob Holloway Assignment 2 part 2
 
-def aStarSearch(problem, heuristic=nullHeuristic):
+def AStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     # Import necessary classes
     from util import PriorityQueue
@@ -256,40 +265,69 @@ def aStarSearch(problem, heuristic=nullHeuristic):
 
 # Jacob Holloway Assignment 2 part 2
 
-class SearchNode:
-    def __init__(self, state, parent=None, action=None, path_cost=0):
-        """
-        Create a new SearchNode.
+class Node:
+    """A node in a search tree. Contains a pointer to the parent (the node
+    that this is a successor of) and to the actual state for this node. Note
+    that if a state is arrived at by two paths, then there are two nodes with
+    the same state. Also includes the action that got us to this state, and
+    the total path_cost (also known as g) to reach the node. Other functions
+    may add an f and h value; see best_first_graph_search and astar_search for
+    an explanation of how the f and h values are handled. You will not need to
+    subclass this class."""
 
-        :param state: The current state represented by this node.
-        :param parent: The parent SearchNode that generated this node.
-        :param action: The action taken to get from the parent node to this node.
-        :param path_cost: The total cost to reach this node from the start node.
-        """
+    def __init__(self, state, parent=None, action=None, path_cost=0):
+        """Create a search tree Node, derived from a parent by an action."""
         self.state = state
         self.parent = parent
         self.action = action
         self.path_cost = path_cost
+        self.depth = 0
+        if parent:
+            self.depth = parent.depth + 1
 
-    def __lt__(self, other):
-        """
-        This method is necessary for the PriorityQueue to compare nodes.
-        It defines a node to be less than another node if its path cost is lower.
-        """
-        return self.path_cost < other.path_cost
+    def __repr__(self):
+        return "<Node {}>".format(self.state)
 
-    def get_path(self):
-        """
-        Reconstruct the path from the start node to this node (used when the goal is found).
+    def __lt__(self, node):
+        return self.state < node.state
 
-        :return: A list of actions to get from the start node to this node.
-        """
-        node, actions = self, []
-        while node.parent is not None:
-            actions.append(node.action)
+    def expand(self, problem):
+        """List the nodes reachable in one step from this node."""
+        return [self.child_node(problem, action)
+                for action in problem.actions(self.state)]
+
+    def child_node(self, problem, action):
+        """[Figure 3.10]"""
+        next_state = problem.result(self.state, action)
+        next_node = Node(next_state, self, action, problem.path_cost(self.path_cost, self.state, action, next_state))
+        return next_node
+
+    def solution(self):
+        """Return the sequence of actions to go from the root to this node."""
+        return [node.action for node in self.path()[1:]]
+
+    def path(self):
+        """Return a list of nodes forming the path from the root to this node."""
+        node, path_back = self, []
+        while node:
+            path_back.append(node)
             node = node.parent
-        actions.reverse()  # The actions are added from the goal to the start so we need to reverse them
-        return actions
+        return list(reversed(path_back))
+
+    # We want for a queue of nodes in breadth_first_graph_search or
+    # astar_search to have no duplicated states, so we treat nodes
+    # with the same state as equal. [Problem: this may not be what you
+    # want in other contexts.]
+
+    def __eq__(self, other):
+        return isinstance(other, Node) and self.state == other.state
+
+    def __hash__(self):
+        # We use the hash value of the state
+        # stored in the node instead of the node
+        # object itself to quickly search a node
+        # with the same state in a Hash Table
+        return hash(self.state)
 
 
 
@@ -304,7 +342,7 @@ def graph_search(problem, g, h, verbose=False, debug=False):
     from util import PriorityQueue
 
     # Define the initial state and the frontier using a priority queue
-    start_node = SearchNode(problem.getStartState())
+    start_node = Node(problem.getStartState())
     frontier = PriorityQueue()
     frontier.push(start_node, g(start_node) + h(start_node, problem))
 
@@ -326,7 +364,7 @@ def graph_search(problem, g, h, verbose=False, debug=False):
 
         # Expand the node and add all unexplored successors to the frontier
         for successor, action, cost in problem.getSuccessors(node.state):
-            child_node = SearchNode(successor, node, action, node.path_cost + cost)
+            child_node = Node(successor, node, action, node.path_cost + cost)
 
             # Check if we have already explored this state or if it's already in the frontier with higher cost
             if successor not in explored and (child_node not in frontier.heap or g(child_node) < frontier.getPriority(child_node)):
@@ -348,12 +386,3 @@ def reconstruct_path(node):
         node = node.parent
     actions.reverse()  # The actions are in goal-to-start order, so reverse them
     return actions
-
-
-
-
-# Abbreviations
-bfs = breadthFirstSearch
-dfs = depthFirstSearch
-astar = aStarSearch
-ucs = uniformCostSearch
