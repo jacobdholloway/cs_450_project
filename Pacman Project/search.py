@@ -13,6 +13,14 @@
 
 
 
+# Programming assignment Affadit
+
+# Single programmer:
+# I promise that the attached assignment is my own work. I recognize that should this not
+# be the case, I will be subject to penalties as outlined in the course syllabus. Jacob Holloway
+
+
+
 # Created by Jacob Holloway
 # Made for CS 450 Intro to AI
 # search.py is part of Assignment 2 part 2
